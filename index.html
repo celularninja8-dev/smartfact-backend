@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFact - Enterprise ERP & Business Intelligence</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #070b14; color: #f8fafc; padding: 20px; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        .card { background: #111827; padding: 25px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); margin-bottom: 20px; border: 1px solid #1f2937; }
+        h1, h2, h3 { color: #38bdf8; margin-bottom: 15px; }
+        .hidden { display: none !important; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 14px; color: #9ca3af; font-weight: 500; }
+        input, select { padding: 10px; border-radius: 8px; border: 1px solid #374151; background: #030712; color: #fff; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #38bdf8; }
+        button { background: #0284c7; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.2s; width: 100%; }
+        button:hover { background: #0369a1; }
+        .link-btn { background: none; color: #38bdf8; border: none; cursor: pointer; text-decoration: underline; width: auto; padding: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #030712; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #1f2937; font-size: 14px; }
+        th { background: #1f2937; color: #38bdf8; }
+        .user-bar { display: flex; justify-content: space-between; align-items: center; background: #111827; padding: 14px 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #1f2937; }
+        .btn-update { background: #ca8a04; padding: 6px 10px; width: auto; }
+        .btn-delete { background: #dc2626; padding: 6px 10px; width: auto; }
+        .tab-btn { width: auto; padding: 8px 14px; font-size: 13px; }
+        .chart-box { background: #030712; padding: 20px; border-radius: 12px; border: 1px solid #1f2937; }
+        .badge-role { background: #0369a1; color: #bae6fd; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card" style="text-align: center;">
+        <h1>🚀 SmartFact Enterprise ERP & Business Intelligence</h1>
+        <p>Control de Inventarios Masivos, Transacciones ACID, Paginación Servidor y Tesorería</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-section" class="card">
+        <h2>🔐 Acceso Corporativo Seguro</h2>
+        <form id="loginForm">
+            <div class="form-group"><label>Usuario:</label><input type="text" id="login_username" required autocomplete="username"></div>
+            <div class="form-group"><label>Contraseña:</label><input type="password" id="login_password" required autocomplete="current-password"></div>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+        <div style="margin-top: 15px; text-align: center;">
+            <button class="link-btn" onclick="showSection('register-section')">Registrar nueva organización o bodega</button>
+        </div>
+    </div>
+
+    <!-- REGISTRO CON RBAC -->
+    <div id="register-section" class="card hidden">
+        <h2>📝 Registro Corporativo con Roles (RBAC)</h2>
+        <form id="registerForm">
+            <div class="form-group"><label>Nombre Completo:</label><input type="text" id="reg_full_name" required></div>
+            <div class="form-group"><label>Correo:</label><input type="email" id="reg_email" required></div>
+            <div class="form-group"><label>Usuario:</label><input type="text" id="reg_username" required></div>
+            <div class="form-group"><label>Contraseña:</label><input type="password" id="reg_password" required></div>
+            <div class="form-group"><label>Rol del Sistema:</label>
+                <select id="reg_role" required>
+                    <option value="admin">Administrador (Gerencia y Finanzas)</option>
+                    <option value="operator">Operador de Bodega (Solo Inventario)</option>
+                </select>
+            </div>
+            <button type="submit" style="background: #16a34a;">Registrar Cuenta</button>
+        </form>
+        <button class="link-btn" onclick="showSection('login-section')" style="margin-top: 15px;">← Regresar al Acceso</button>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div id="app-section" class="hidden">
+        <div class="user-bar">
+            <div>
+                <span>👤 Operador: <b id="session-user-name"></b></span>
+                <span class="badge-role" id="session-user-role"></span>
+            </div>
+            <button onclick="logout()" style="background: #dc2626; width: auto; padding: 6px 12px;">Cerrar Sesión</button>
+        </div>
+
+        <!-- CATEGORÍAS -->
+        <div class="card" id="card-categories">
+            <h2>📁 Gestión de Categorías</h2>
+            <form id="categoryForm" style="display: flex; gap: 10px;">
+                <input type="text" id="category_name" required placeholder="Nombre de categoría..." style="flex: 1;">
+                <button type="submit" style="width: auto;">Crear Categoría</button>
+            </form>
+        </div>
+
+        <!-- PRODUCTOS -->
+        <div class="card">
+            <h2 id="form-title">Registro de Producto (Control Masivo)</h2>
+            <form id="productForm">
+                <input type="hidden" id="product_id">
+                <div class="form-grid">
+                    <div class="form-group"><label>Nombre:</label><input type="text" id="product_name" required></div>
+                    <div class="form-group"><label>Categoría:</label><select id="category_id"><option value="">-- Seleccione --</option></select></div>
+                    <div class="form-group"><label>Stock Masivo:</label><input type="number" id="stock_current_level" required min="0" placeholder="Ej. 100000"></div>
+                    <div class="form-group"><label>Stock Mínimo:</label><input type="number" id="stock_min_level" required min="0" placeholder="Ej. 50"></div>
+                    <div class="form-group"><label>Precio Unitario ($):</label><input type="number" step="0.01" id="unit_price" required min="0"></div>
+                    <div class="form-group"><label>Proveedor Principal:</label><input type="text" id="prod_supplier_name" placeholder="Ej. Comercializadora S.A."></div>
+                </div>
+                <button type="submit" id="btn-submit">Guardar Producto</button>
+                <button type="button" id="btn-cancel" style="background: #64748b; display: none; margin-top: 5px;" onclick="resetForm()">Cancelar</button>
+            </form>
+        </div>
+
+        <!-- FACTURACIÓN Y TRANSACCIÓN ATÓMICA -->
+        <div class="card" style="border-color: #16a34a;">
+            <h2>📦 Ingreso de Factura y Concurrencia (ACID)</h2>
+            <form id="invoiceForm">
+                <div class="form-grid">
+                    <div class="form-group"><label>Proveedor:</label><input type="text" id="supplier_name" required placeholder="Proveedor"></div>
+                    <div class="form-group"><label>Nº Factura:</label><input type="text" id="invoice_number" placeholder="Automático si se deja en blanco"></div>
+                    <div class="form-group"><label>Producto:</label><select id="inv_product_id" required onchange="autofillInvoicePrice()"><option value="">-- Seleccione --</option></select></div>
+                    <div class="form-group"><label>Cantidad Ingresada (Grandes Lotes):</label><input type="number" id="inv_quantity" required min="1"></div>
+                    <div class="form-group"><label>Costo de Compra ($):</label><input type="number" step="0.01" id="inv_unit_price" required min="0"></div>
+                </div>
+                <button type="submit" style="background: #16a34a;">Procesar Factura con Transacción Atómica</button>
+            </form>
+        </div>
+
+        <!-- INVENTARIO -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                <h2>📋 Inventario General (Paginado del Servidor)</h2>
+                <input type="text" id="searchFilter" placeholder="Buscar producto..." onkeyup="loadProducts()" style="max-width: 250px;">
+            </div>
+            <table>
+                <thead>
+                    <tr><th>ID</th><th>Producto</th><th>Categoría</th><th>Proveedor</th><th>Stock</th><th>Precio</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="productTableBody"><tr><td colspan="7" style="text-align: center;">Cargando inventario...</td></tr></tbody>
+            </table>
+            <div id="paginationControls" style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;"></div>
+        </div>
+
+        <!-- BUSINESS INTELLIGENCE Y TESORERÍA (PRO) -->
+        <div class="card" id="card-reports" style="border-color: #eab308;">
+            <h2>📊 Business Intelligence & Tesorería Corporativa</h2>
+            
+            <!-- TARJETAS DE KPIs GERENCIALES -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #030712; padding: 15px; border-radius: 10px; border-left: 4px solid #38bdf8;">
+                    <span style="font-size: 12px; color: #9ca3af;">VALOR TOTAL ACTIVOS</span>
+                    <h3 id="kpi-asset-value" style="color: #38bdf8; margin-top: 5px;">$0.00</h3>
+                </div>
+                <div style="background: #030712; padding: 15px; border-radius: 10px; border-left: 4px solid #10b981;">
+                    <span style="font-size: 12px; color: #9ca3af;">UNIDADES EN BODEGA</span>
+                    <h3 id="kpi-total-units" style="color: #10b981; margin-top: 5px;">0</h3>
+                </div>
+                <div style="background: #030712; padding: 15px; border-radius: 10px; border-left: 4px solid #ef4444;">
+                    <span style="font-size: 12px; color: #9ca3af;">ALERTAS DE STOCK CRÍTICO</span>
+                    <h3 id="kpi-critical-alerts" style="color: #ef4444; margin-top: 5px;">0</h3>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <button onclick="switchReportTab('bi')" class="tab-btn" style="background: #0284c7;">📈 Dashboard BI & Gráficos Pro</button>
+                <button onclick="switchReportTab('replenishment')" class="tab-btn" style="background: #16a34a;">📦 Órdenes de Compra</button>
+                <button onclick="switchReportTab('kardex')" class="tab-btn" style="background: #9333ea;">📋 Kardex + Exportar PDF</button>
+                <button onclick="switchReportTab('payable')" class="tab-btn" style="background: #ca8a04;">💰 Cuentas por Pagar</button>
+            </div>
+
+            <div id="tab-bi" class="report-view">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                    <div class="chart-box">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #38bdf8;">Valor Inmovilizado por Categoría ($)</h3>
+                        <canvas id="valuationChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3 style="font-size: 16px; margin-bottom: 10px; color: #10b981;">Participación de Stock en Unidades</h3>
+                        <canvas id="shareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-replenishment" class="report-view hidden">
+                <h3>Reabastecimiento Inteligente</h3>
+                <div id="replenishment-results"></div>
+            </div>
+
+            <div id="tab-kardex" class="report-view hidden">
+                <h3>Kardex Inmutable de Movimientos</h3>
+                <button onclick="exportKardexPDF()" style="background: #dc2626; width: auto; margin-bottom: 10px;">📄 Exportar Kardex a PDF</button>
+                <div id="kardex-results"></div>
+            </div>
+
+            <div id="tab-payable" class="report-view hidden">
+                <h3>Control de Cuentas por Pagar</h3>
+                <div id="payable-results"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:3000/api/products';
+    const AUTH_URL = 'http://localhost:3000/api/auth';
+    let globalProducts = [];
+    let myChart = null;
+    let shareChartInstance = null;
+    let currentPage = 1;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const id = localStorage.getItem('smartfact_user_id');
+        const name = localStorage.getItem('smartfact_user_name');
+        const role = localStorage.getItem('smartfact_user_role');
+        if (id && name) {
+            document.getElementById('session-user-name').innerText = name;
+            document.getElementById('session-user-role').innerText = role.toUpperCase();
+            
+            if (role === 'operator') {
+                document.getElementById('card-reports').style.display = 'none';
+                document.getElementById('card-categories').style.display = 'none';
+            }
+
+            showSection('app-section');
+            loadCategories();
+            loadProducts(1);
+            if (role !== 'operator') loadBIData();
+        } else {
+            showSection('login-section');
+        }
+    });
+
+    function showSection(id) {
+        ['login-section', 'register-section', 'app-section'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch(`${AUTH_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name: document.getElementById('reg_full_name').value.trim(),
+                email: document.getElementById('reg_email').value.trim(),
+                username: document.getElementById('reg_username').value.trim(),
+                password: document.getElementById('reg_password').value,
+                role: document.getElementById('reg_role').value
+            })
+        });
+        const result = await res.json();
+        alert(result.message || result.error);
+        if (result.success) { document.getElementById('registerForm').reset(); showSection('login-section'); }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch(`${AUTH_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: document.getElementById('login_username').value.trim(),
+                password: document.getElementById('login_password').value
+            })
+        });
+        const result = await res.json();
+        if (res.ok && result.success && result.user) {
+            localStorage.setItem('smartfact_user_id', result.user.id);
+            localStorage.setItem('smartfact_user_name', result.user.full_name);
+            localStorage.setItem('smartfact_user_role', result.user.role);
+            window.location.reload();
+        } else {
+            alert('❌ ' + (result.error || 'Credenciales incorrectas'));
+        }
+    });
+
+    function logout() { localStorage.clear(); showSection('login-section'); }
+
+    async function loadCategories() {
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch(`http://localhost:3000/api/categories?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+        const result = await res.json();
+        const select = document.getElementById('category_id');
+        select.innerHTML = '<option value="">-- Seleccione --</option>';
+        if (result.success && result.data) {
+            result.data.forEach(c => select.innerHTML += `<option value="${c.category_id}">${c.category_name}</option>`);
+        }
+    }
+
+    document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch('http://localhost:3000/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+            body: JSON.stringify({ user_id: userId, category_name: document.getElementById('category_name').value.trim() })
+        });
+        const result = await res.json();
+        alert(result.message || result.error);
+        if (result.success) { document.getElementById('categoryForm').reset(); loadCategories(); }
+    });
+
+    async function loadProducts(page = 1) {
+        currentPage = page;
+        const userId = localStorage.getItem('smartfact_user_id');
+        const search = document.getElementById('searchFilter').value.trim();
+        if (!userId) return;
+
+        const res = await fetch(`${API_URL}?user_id=${userId}&page=${page}&limit=10&search=${encodeURIComponent(search)}`, { headers: { 'x-user-id': userId } });
+        const result = await res.json();
+        const tbody = document.getElementById('productTableBody');
+        const selectProd = document.getElementById('inv_product_id');
+        
+        tbody.innerHTML = '';
+        selectProd.innerHTML = '<option value="">-- Seleccione --</option>';
+
+        if (result.success && result.data && result.data.length > 0) {
+            globalProducts = result.data;
+            globalProducts.forEach(p => {
+                let isCritical = Number(p.stock_current_level) <= Number(p.stock_min_level);
+                tbody.innerHTML += `
+                    <tr style="${isCritical ? 'background: rgba(220, 38, 38, 0.15);' : ''}">
+                        <td>${p.product_id}</td>
+                        <td><b>${p.product_name}</b></td>
+                        <td>${p.category_name || 'General'}</td>
+                        <td>${p.supplier_name}</td>
+                        <td style="${isCritical ? 'color: #dc2626; font-weight: bold;' : ''}">${Number(p.stock_current_level).toLocaleString()} ${isCritical ? '⚠️' : ''}</td>
+                        <td>$${Number(p.unit_price).toLocaleString()}</td>
+                        <td>
+                            <button class="btn-update" onclick="prepareEdit(${p.product_id}, '${p.product_name}', ${p.category_id || ''}, ${p.stock_current_level}, ${p.stock_min_level}, ${p.unit_price}, '${p.supplier_name || ''}')">Editar</button>
+                            <button class="btn-delete" onclick="softDelete(${p.product_id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+                selectProd.innerHTML += `<option value="${p.product_id}">${p.product_name} (Stock: ${Number(p.stock_current_level).toLocaleString()})</option>`;
+            });
+
+            let pagHtml = '';
+            for(let i = 1; i <= result.pagination.totalPages; i++) {
+                pagHtml += `<button onclick="loadProducts(${i})" style="width: auto; padding: 5px 10px; background: ${i === currentPage ? '#0284c7' : '#1f2937'}">${i}</button>`;
+            }
+            document.getElementById('paginationControls').innerHTML = pagHtml;
+        } else {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b;">No se encontraron productos.</td></tr>`;
+            document.getElementById('paginationControls').innerHTML = '';
+        }
+    }
+
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = localStorage.getItem('smartfact_user_id');
+        const id = document.getElementById('product_id').value;
+        const data = {
+            user_id: Number(userId),
+            product_name: document.getElementById('product_name').value.trim(),
+            category_id: document.getElementById('category_id').value ? Number(document.getElementById('category_id').value) : null,
+            stock_current_level: Number(document.getElementById('stock_current_level').value),
+            stock_min_level: Number(document.getElementById('stock_min_level').value),
+            unit_price: Number(document.getElementById('unit_price').value),
+            supplier_name: document.getElementById('prod_supplier_name').value.trim() || 'General'
+        };
+
+        const res = await fetch(id ? `${API_URL}/${id}` : API_URL, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        alert(result.message || result.error);
+        if (result.success) { resetForm(); loadProducts(currentPage); if(localStorage.getItem('smartfact_user_role') !== 'operator') loadBIData(); }
+    });
+
+    document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = localStorage.getItem('smartfact_user_id');
+        const invoiceData = {
+            user_id: Number(userId),
+            supplier_name: document.getElementById('supplier_name').value.trim(),
+            invoice_number: document.getElementById('invoice_number').value.trim(),
+            items: [{
+                product_id: Number(document.getElementById('inv_product_id').value),
+                quantity: Number(document.getElementById('inv_quantity').value),
+                unit_price: Number(document.getElementById('inv_unit_price').value)
+            }]
+        };
+
+        const res = await fetch('http://localhost:3000/api/invoices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+            body: JSON.stringify(invoiceData)
+        });
+        const result = await res.json();
+        alert(result.message || result.error);
+        if (result.success) { document.getElementById('invoiceForm').reset(); loadProducts(currentPage); if(localStorage.getItem('smartfact_user_role') !== 'operator') loadBIData(); }
+    });
+
+    function autofillInvoicePrice() {
+        const id = document.getElementById('inv_product_id').value;
+        const found = globalProducts.find(p => p.product_id == id);
+        document.getElementById('inv_unit_price').value = found ? found.unit_price : '';
+    }
+
+    function prepareEdit(id, name, catId, stock, min, price, supplier) {
+        document.getElementById('product_id').value = id;
+        document.getElementById('product_name').value = name;
+        document.getElementById('category_id').value = catId || '';
+        document.getElementById('stock_current_level').value = stock;
+        document.getElementById('stock_min_level').value = min;
+        document.getElementById('unit_price').value = price;
+        document.getElementById('prod_supplier_name').value = supplier;
+        document.getElementById('form-title').innerText = `Editar Producto ID: ${id}`;
+        document.getElementById('btn-submit').innerText = 'Actualizar';
+        document.getElementById('btn-cancel').style.display = 'inline-block';
+    }
+
+    function resetForm() {
+        document.getElementById('productForm').reset();
+        document.getElementById('product_id').value = '';
+        document.getElementById('form-title').innerText = 'Registro de Producto (Control Masivo)';
+        document.getElementById('btn-submit').innerText = 'Guardar Producto';
+        document.getElementById('btn-cancel').style.display = 'none';
+    }
+
+    async function softDelete(id) {
+        if (!confirm('¿Eliminar este producto?')) return;
+        await fetch(`${API_URL}/delete/${id}`, { method: 'PUT' });
+        loadProducts(currentPage);
+        if(localStorage.getItem('smartfact_user_role') !== 'operator') loadBIData();
+    }
+
+    function switchReportTab(tab) {
+        document.querySelectorAll('.report-view').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        if (tab === 'bi') loadBIData();
+        if (tab === 'replenishment') loadReplenishmentReport();
+        if (tab === 'kardex') loadKardexReport();
+        if (tab === 'payable') loadAccountsPayable();
+    }
+
+    // ================= MOTOR DE BUSINESS INTELLIGENCE PRO =================
+    async function loadBIData() {
+        const userId = localStorage.getItem('smartfact_user_id');
+        if (!userId) return;
+
+        try {
+            // 1. Cargar KPIs Financieros
+            const kpiRes = await fetch(`http://localhost:3000/api/reports/kpis?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+            const kpiResult = await kpiRes.json();
+            if (kpiResult.success && kpiResult.data) {
+                const data = kpiResult.data;
+                document.getElementById('kpi-asset-value').innerText = `$${Number(data.total_asset_value || 0).toLocaleString()}`;
+                document.getElementById('kpi-total-units').innerText = Number(data.total_units || 0).toLocaleString();
+                document.getElementById('kpi-critical-alerts').innerText = Number(data.critical_stock_count || 0).toLocaleString();
+            }
+
+            // 2. Gráfico de Barras Pro (Valorización)
+            const res = await fetch(`http://localhost:3000/api/reports/valuation?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+            const result = await res.json();
+            if (result.success && result.data && result.data.length > 0) {
+                const labels = result.data.map(d => d.category_name);
+                const dataVals = result.data.map(d => Number(d.total_valuation));
+
+                const ctx = document.getElementById('valuationChart').getContext('2d');
+                if (myChart) myChart.destroy();
+                myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Valor en $',
+                            data: dataVals,
+                            backgroundColor: ['#38bdf8', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: (context) => ` Valor: $${context.raw.toLocaleString()}` } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
+                            y: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } }
+                        }
+                    }
+                });
+            }
+
+            // 3. Gráfico de Dona Pro (Participación de Unidades)
+            const shareRes = await fetch(`http://localhost:3000/api/reports/category-share?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+            const shareResult = await shareRes.json();
+            if (shareResult.success && shareResult.data && shareResult.data.length > 0) {
+                const labels = shareResult.data.map(d => d.category_name);
+                const dataVals = shareResult.data.map(d => Number(d.units_share));
+
+                const ctxShare = document.getElementById('shareChart').getContext('2d');
+                if (shareChartInstance) shareChartInstance.destroy();
+                shareChartInstance = new Chart(ctxShare, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataVals,
+                            backgroundColor: ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        plugins: { 
+                            legend: { position: 'bottom', labels: { color: '#f8fafc', boxWidth: 12 } },
+                            tooltip: { callbacks: { label: (context) => ` ${context.label}: ${context.raw.toLocaleString()} unids.` } }
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("Error cargando BI Pro:", err);
+        }
+    }
+
+    async function loadReplenishmentReport() {
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch(`http://localhost:3000/api/reports/replenishment?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+        const result = await res.json();
+        const container = document.getElementById('replenishment-results');
+        if (result.success && result.data.length > 0) {
+            let html = `<table><thead><tr><th>Producto</th><th>Stock Actual</th><th>Sugerencia de Compra</th></tr></thead><tbody>`;
+            result.data.forEach(p => {
+                html += `<tr><td><b>${p.product_name}</b></td><td style="color: #dc2626;">${Number(p.stock_current_level).toLocaleString()}</td><td style="color: #16a34a; font-weight: bold;">+${Number(p.recommended_purchase_qty).toLocaleString()} unids.</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        } else { container.innerHTML = `<p style="color: #16a34a; text-align: center;">Inventario saludable. Sin alertas.</p>`; }
+    }
+
+    async function loadKardexReport() {
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch(`http://localhost:3000/api/reports/kardex?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+        const result = await res.json();
+        const container = document.getElementById('kardex-results');
+        if (result.success && result.data.length > 0) {
+            let html = `<table><thead><tr><th>Factura</th><th>Producto</th><th>Proveedor</th><th>Unidades</th><th>Costo Unit.</th><th>Fecha</th></tr></thead><tbody>`;
+            result.data.forEach(r => {
+                html += `<tr><td><code>${r.invoice_number}</code></td><td><b>${r.product_name}</b></td><td>${r.supplier_name}</td><td style="color: #38bdf8;">+${Number(r.units_added).toLocaleString()}</td><td>$${Number(r.unit_price).toLocaleString()}</td><td>${new Date(r.movement_date).toLocaleString()}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        } else { container.innerHTML = `<p style="color: #64748b; text-align: center;">Sin movimientos.</p>`; }
+    }
+
+    async function exportKardexPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("SmartFact - Reporte Oficial de Kardex", 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 28);
+        
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch(`http://localhost:3000/api/reports/kardex?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+        const result = await res.json();
+        
+        let y = 40;
+        if (result.success && result.data) {
+            result.data.forEach((r, index) => {
+                if (y > 270) { doc.addPage(); y = 20; }
+                doc.text(`${index + 1}. Factura: ${r.invoice_number} | Producto: ${r.product_name} | Cant: +${r.units_added} | Costo: $${r.unit_price}`, 14, y);
+                y += 10;
+            });
+        }
+        doc.save("Kardex_SmartFact.pdf");
+    }
+
+    async function loadAccountsPayable() {
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch(`http://localhost:3000/api/reports/accounts-payable?user_id=${userId}`, { headers: { 'x-user-id': userId } });
+        const result = await res.json();
+        const container = document.getElementById('payable-results');
+        if (result.success && result.data.length > 0) {
+            let html = `<table><thead><tr><th>Factura</th><th>Proveedor</th><th>Deuda Total</th><th>Estado</th><th>Acción</th></tr></thead><tbody>`;
+            result.data.forEach(r => {
+                let isPaid = r.payment_status === 'paid';
+                html += `<tr>
+                    <td><code>${r.invoice_number}</code></td>
+                    <td><b>${r.supplier_name}</b></td>
+                    <td style="color: ${isPaid ? '#64748b' : '#eab308'}; font-weight: bold;">$${Number(r.total_debt).toLocaleString()}</td>
+                    <td><span style="color: ${isPaid ? '#16a34a' : '#eab308'};">${isPaid ? 'Pagado' : 'Pendiente'}</span></td>
+                    <td>${isPaid ? '-' : `<button style="background: #16a34a; padding: 5px 10px; width: auto;" onclick="markAsPaid(${r.account_id})">Saldar Deuda</button>`}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        } else { container.innerHTML = `<p style="color: #64748b; text-align: center;">Sin cuentas por pagar.</p>`; }
+    }
+
+    async function markAsPaid(id) {
+        if (!confirm('¿Marcar esta deuda como pagada?')) return;
+        const userId = localStorage.getItem('smartfact_user_id');
+        const res = await fetch(`http://localhost:3000/api/reports/accounts-payable/${id}`, {
+            method: 'PUT',
+            headers: { 'x-user-id': userId }
+        });
+        const result = await res.json();
+        alert(result.message || result.error);
+        if (result.success) loadAccountsPayable();
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "smartfact-backend",
+  "version": "1.0.0",
+  "description": "Backend para SmartFact SaaS B2B en Node.js y JavaScript",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "mysql2": "^3.24.2"
+  }
+}
